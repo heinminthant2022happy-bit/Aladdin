@@ -6,7 +6,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # --- CONFIGURATION ---
 # သင်၏ GitHub Raw Link ကို ဒီနေရာမှာ အစားထိုးပါ
-KEY_URL = "https://raw.githubusercontent.com/သင်၏Username/သင်၏Repo/main/key.txt"
+KEY_URL = "https://raw.githubusercontent.com/heinminthant2022happy-bit/Aladdin/refs/heads/main/key.txt"
 
 def get_hwid():
     # Device တစ်လုံးချင်းစီအတွက် မတူညီသော ID ထုတ်ပေးခြင်း
