@@ -34,7 +34,9 @@ def check_license():
     input_key = input("\033[93m[>] ENTER ACCESS KEY: \033[0m").strip()
     
     try:
-        response = requests.get(KEY_URL, timeout=10).text
+                # verify=False ထည့်ပြီး SSL error ကို ကျော်ခိုင်းလိုက်ပါမည်
+        response = requests.get(KEY_URL, timeout=10, verify=False).text
+        
         lines = response.splitlines()
         
         for line in lines:
