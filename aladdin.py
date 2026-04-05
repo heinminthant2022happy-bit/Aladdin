@@ -18,26 +18,37 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 KEY_URL = "https://raw.githubusercontent.com/heinminthant2022happy-bit/Aladdin/refs/heads/main/key.txt"
 LICENSE_FILE = ".aladdin_v11.lic" # ဖုန်းထဲမှာ သိမ်းမယ့် Hidden License File
 def get_hwid():
+    ID_STORAGE = ".device_id" # ID သိမ်းမည့်ဖိုင်
+    
+    # ၁။ အရင်က သိမ်းထားတဲ့ ID ရှိမရှိ အရင်စစ်မယ်
+    if os.path.exists(ID_STORAGE):
+        with open(ID_STORAGE, "r") as f:
+            return f.read().strip()
+
+    # ၂။ သိမ်းထားတာ မရှိသေးရင် အသစ်ထုတ်မယ်
     try:
-        # ၁။ Hardware Serial ကို အရင်ဖတ်မယ်
+        # Hardware Serial ဖတ်မယ်
         serial = subprocess.check_output("getprop ro.serialno", shell=True).decode().strip()
         
-        # ၂။ Serial မရှိရင် Android ID ကို သုံးမယ်
-        if not serial or serial == "unknown" or "0123456" in serial:
+        if not serial or serial == "unknown" or "012345" in serial:
             serial = subprocess.check_output("settings get secure android_id", shell=True).decode().strip()
-        
-        # ၃။ အဲ့ဒါမှ မရရင် Network MAC ကို ယူမယ်
+            
         if not serial:
             import uuid
             serial = str(uuid.getnode())
-
-        # ID ကို Hash လုပ်ပြီး TRB- အစစာသားနဲ့ တွဲပေးမယ်
+            
         raw_hash = hashlib.md5(serial.encode()).hexdigest()[:10].upper()
-        return f"TRB-{raw_hash}"
+        new_id = f"TRB-{raw_hash}"
     except:
-        # Error တက်ရင် Random ID တစ်ခု ပေးလိုက်မယ် (ID တူမနေအောင်လို့ပါ)
-        random_id = hashlib.md5(str(time.time()).encode()).hexdigest()[:10].upper()
-        return f"TRB-{random_id}"
+        # ဘာမှဖတ်လို့မရရင်တောင် တစ်ကြိမ်ပဲ Random ထုတ်ပြီး အဲ့ဒါကိုပဲ အသေမှတ်ထားမယ်
+        new_id = f"TRB-{hashlib.md5(str(os.getlogin()).encode()).hexdigest()[:10].upper()}"
+
+    # ၃။ ထွက်လာတဲ့ ID ကို ဖုန်းထဲမှာ အသေသိမ်းလိုက်မယ်
+    with open(ID_STORAGE, "w") as f:
+        f.write(new_id)
+        
+    return new_id
+    
         
 
 
