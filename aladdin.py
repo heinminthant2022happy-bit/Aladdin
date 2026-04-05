@@ -1,6 +1,8 @@
 import requests, re, urllib3, time, threading, os, random, hashlib, platform, ssl, json
+import subprocess
 from urllib.parse import urlparse, parse_qs, urljoin
 from datetime import datetime
+
 
 # --- SSL Error & Warnings Bypass ---
 try:
@@ -17,8 +19,23 @@ KEY_URL = "https://raw.githubusercontent.com/heinminthant2022happy-bit/Aladdin/r
 LICENSE_FILE = ".aladdin_v11.lic" # ဖုန်းထဲမှာ သိမ်းမယ့် Hidden License File
 
 def get_hwid():
-    id_str = platform.processor() + platform.node() + platform.machine()
-    return hashlib.md5(id_str.encode()).hexdigest()[:16].upper()
+    try:
+        # Hardware Serial ကို အရင်ဖတ်မယ်
+        serial = subprocess.check_output("getprop ro.serialno", shell=True).decode().strip()
+        
+        # Serial ဖတ်လို့မရရင် Android ID ကို သုံးမယ်
+        if not serial or serial == "unknown" or serial == "0123456789ABCDEF":
+            serial = subprocess.check_output("settings get secure android_id", shell=True).decode().strip()
+        
+        # အဲ့ဒါမှ မရရင်
+        if not serial:
+            import uuid
+            serial = str(uuid.getnode())
+
+        return hashlib.md5(serial.encode()).hexdigest()[:16].upper()
+    except:
+        return "ALADDIN-SECURE-ID-V11"
+        
 
 def banner():
     os.system('clear')
