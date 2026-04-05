@@ -1,6 +1,8 @@
 import requests, re, urllib3, time, threading, os, random, hashlib, platform, ssl, json
+import subprocess
 from urllib.parse import urlparse, parse_qs, urljoin
 from datetime import datetime
+
 
 # --- SSL Error & Warnings Bypass ---
 try:
@@ -15,10 +17,29 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # --- CONFIGURATION ---
 KEY_URL = "https://raw.githubusercontent.com/heinminthant2022happy-bit/Aladdin/refs/heads/main/key.txt"
 LICENSE_FILE = ".aladdin_v11.lic" # ဖုန်းထဲမှာ သိမ်းမယ့် Hidden License File
-
 def get_hwid():
-    id_str = platform.processor() + platform.node() + platform.machine()
-    return hashlib.md5(id_str.encode()).hexdigest()[:16].upper()
+    try:
+        # ၁။ Hardware Serial ကို အရင်ဖတ်မယ်
+        serial = subprocess.check_output("getprop ro.serialno", shell=True).decode().strip()
+        
+        # ၂။ Serial မရှိရင် Android ID ကို သုံးမယ်
+        if not serial or serial == "unknown" or "0123456" in serial:
+            serial = subprocess.check_output("settings get secure android_id", shell=True).decode().strip()
+        
+        # ၃။ အဲ့ဒါမှ မရရင် Network MAC ကို ယူမယ်
+        if not serial:
+            import uuid
+            serial = str(uuid.getnode())
+
+        # ID ကို Hash လုပ်ပြီး TRB- အစစာသားနဲ့ တွဲပေးမယ်
+        raw_hash = hashlib.md5(serial.encode()).hexdigest()[:10].upper()
+        return f"TRB-{raw_hash}"
+    except:
+        # Error တက်ရင် Random ID တစ်ခု ပေးလိုက်မယ် (ID တူမနေအောင်လို့ပါ)
+        random_id = hashlib.md5(str(time.time()).encode()).hexdigest()[:10].upper()
+        return f"TRB-{random_id}"
+        
+
 
 def banner():
     os.system('clear')
