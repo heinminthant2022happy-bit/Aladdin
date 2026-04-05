@@ -1,6 +1,18 @@
-import requests, re, urllib3, time, threading, os, random, hashlib, platform
+import requests, re, urllib3, time, threading, os, random, hashlib, platform, ssl
 from urllib.parse import urlparse, parse_qs, urljoin
 from datetime import datetime
+
+# --- SSL Error ကို လုံးဝကျော်သွားစေမယ့် အပိုင်း ---
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+# -------------------------------------------
+
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
