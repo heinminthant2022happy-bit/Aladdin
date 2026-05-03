@@ -12,7 +12,6 @@ from datetime import datetime
 
 # Colors
 w, g, y, r_clr, b = "\033[1;00m", "\033[1;32m", "\033[1;33m", "\033[1;31m", "\033[1;34m
-
 # [ CONFIGURATION ]
 DEFAULT_GATEWAY = "192.168.110.1"
 # ဒီအောက်က နေရာမှာ ခင်ဗျားရဲ့ GitHub Raw Link ကို ထည့်ပါ
