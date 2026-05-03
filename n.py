@@ -15,7 +15,7 @@ w, g, y, r_clr, b = "\033[1;00m", "\033[1;32m", "\033[1;33m", "\033[1;31m", "\03
 
 # [ CONFIGURATION ]
 DEFAULT_GATEWAY = "192.168.110.1"
-RAW_KEY_LINK = "https://raw.githubusercontent.com/heinminthant2022happy-bit/Aladdin/refs/heads/main/Cold.txt"
+RAW_KEY_LINK = "https://raw.githubusercontent.com/heinminthant2022happy-bit/Aladdin/refs/heads/main/cold.txt"
 
 def Logo():
     os.system("clear")
