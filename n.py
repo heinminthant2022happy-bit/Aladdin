@@ -15,7 +15,8 @@ w, g, y, r_clr, b = "\033[1;00m", "\033[1;32m", "\033[1;33m", "\033[1;31m", "\03
 
 # [ CONFIGURATION ]
 DEFAULT_GATEWAY = "192.168.110.1"
-RAW_KEY_LINK = "https://raw.githubusercontent.com/heinminthant2022happy-bit/Aladdin/refs/heads/main/cold.txt"
+# GitHub link ထဲက cold.txt ကို Cold.txt (C အကြီး) ပြောင်းလိုက်ပါပြီ
+RAW_KEY_LINK = "https://raw.githubusercontent.com/heinminthant2022happy-bit/Aladdin/refs/heads/main/Cold.txt"
 
 def Logo():
     os.system("clear")
@@ -30,7 +31,6 @@ def Logo():
 
 # --- [ LICENSE SYSTEM ] ---
 
-# Device ID ကို မူသေဖြစ်အောင် သိမ်းဆည်းမည့် Logic
 def get_device_id():
     id_file = ".device_id"
     # အကယ်၍ file ရှိပြီးသားဆိုရင် အဲ့ဒီထဲက ID ကိုပဲ ပြန်သုံးမယ်
@@ -38,16 +38,16 @@ def get_device_id():
         with open(id_file, "r") as f:
             return f.read().strip()
     
-    # File မရှိသေးရင် ID အသစ်ထုတ်မယ် (အလုံးရေ ၂ လုံးတိုးထားသည်)
+    # File မရှိသေးရင် ID အသစ်ထုတ်မယ် (ပိုရှည်အောင် လုပ်ထားသည်)
     try:
         serial = os.popen("getprop ro.serialno").read().strip()
         if not serial or len(serial) < 4:
-            # Serial ရှာမရလျှင် Random ID ထုတ်ပေးမည်
-            serial = "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+            # Random ID ကို ၁၂ လုံးအထိ တိုးလိုက်ပါပြီ
+            serial = "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(12))
         
         new_id = f"ALD-{serial.upper()}"
         
-        # ထွက်လာတဲ့ ID ကို file ထဲမှာ အသေသိမ်းထားမယ်
+        # ထွက်လာတဲ့ ID ကို အသေသိမ်းထားမယ်
         with open(id_file, "w") as f:
             f.write(new_id)
         return new_id
@@ -57,6 +57,7 @@ def get_device_id():
 def check_online_license(user_key):
     dev_id = get_device_id()
     try:
+        # User ပို့ပေးတဲ့ URL ကို အကြီးအသေး မှန်အောင် ပြင်ထားသည်
         res = requests.get(RAW_KEY_LINK, timeout=10)
         if res.status_code == 200:
             lines = res.text.splitlines()
@@ -64,21 +65,21 @@ def check_online_license(user_key):
                 if "|" in line:
                     parts = line.split("|")
                     if len(parts) >= 3:
-                        db_id = parts[0].strip()
-                        db_key = parts[1].strip()
-                        db_exp = parts[2].strip()
+                        db_id, db_key, db_exp = parts[0].strip(), parts[1].strip(), parts[2].strip()
                         
                         if db_id == dev_id and db_key == user_key:
                             # ရက်/လ/နှစ် နာရီ:မိနစ် ပုံစံဖြင့် စစ်ဆေးခြင်း
                             try:
-                                exp_dt = datetime.strptime(db_exp, "%d/%m/%Y %H:%M")
-                                if datetime.now() < exp_dt:
-                                    return True, db_exp
-                                else:
-                                    return False, "Expired"
-                            except:
-                                # Format မှားနေရင် ကျော်သွားမယ်
-                                continue
+                                # Dash (-) ရော Slash (/) ရော ရအောင် ပြင်ထားသည်
+                                for fmt in ("%d/%m/%Y %H:%M", "%d-%m-%Y %H:%M"):
+                                    try:
+                                        exp_dt = datetime.strptime(db_exp, fmt)
+                                        if datetime.now() < exp_dt:
+                                            return True, db_exp
+                                        else:
+                                            return False, "Expired"
+                                    except: continue
+                            except: continue
     except:
         return None, "Offline"
     return False, "Invalid"
@@ -106,7 +107,7 @@ def license_screen():
             time.sleep(2); break
         elif status is None:
             if saved_key:
-                print(f"{y}[!] Offline Mode: Using cached license.{w}")
+                print(f"{y}[!] Offline Mode: Using saved key.{w}")
                 time.sleep(2); break
             else:
                 print(f"{r_clr}[!] Internet connection required!{w}")
@@ -114,6 +115,7 @@ def license_screen():
         else:
             if os.path.exists(key_file): os.remove(key_file)
             print(f"{r_clr}[!] {info if info == 'Expired' else 'Invalid Access Key'}{w}")
+            # ပြဿနာရှာရ လွယ်အောင် ID ကိုပါ ပြန်ပြပေးထားသည်
             input(f"\n{g}Press Enter to try again...{w}")
 
 # --- [ TOOL LOGIC ] ---
@@ -210,4 +212,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
+    
