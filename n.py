@@ -10,7 +10,7 @@ import aiohttp
 import requests
 from datetime import datetime
 
-# ၁။ Color Unpack Error ပြင်ဆင်ပြီး (Variable ၅ ခု၊ Value ၅ ခု ကိုက်ညီအောင် လုပ်ထားသည်)
+# ၁။ Color Variables
 w, g, y, r_clr, b = "\033[1;00m", "\033[1;32m", "\033[1;33m", "\033[1;31m", "\033[1;34m"
 
 # [ CONFIGURATION ]
@@ -29,19 +29,34 @@ def Logo():
     print(f"{y}" + "-"*45 + f"{w}")
 
 # --- [ LICENSE SYSTEM ] ---
+
+# Device ID ကို မူသေဖြစ်အောင် သိမ်းဆည်းမည့် Logic
 def get_device_id():
+    id_file = ".device_id"
+    # အကယ်၍ file ရှိပြီးသားဆိုရင် အဲ့ဒီထဲက ID ကိုပဲ ပြန်သုံးမယ်
+    if os.path.exists(id_file):
+        with open(id_file, "r") as f:
+            return f.read().strip()
+    
+    # File မရှိသေးရင် ID အသစ်ထုတ်မယ် (အလုံးရေ ၂ လုံးတိုးထားသည်)
     try:
         serial = os.popen("getprop ro.serialno").read().strip()
         if not serial or len(serial) < 4:
-            serial = "DEV" + "".join(random.choice(string.digits) for _ in range(5))
-        return f"ALD-{serial.upper()}"
+            # Serial ရှာမရလျှင် Random ID ထုတ်ပေးမည်
+            serial = "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+        
+        new_id = f"ALD-{serial.upper()}"
+        
+        # ထွက်လာတဲ့ ID ကို file ထဲမှာ အသေသိမ်းထားမယ်
+        with open(id_file, "w") as f:
+            f.write(new_id)
+        return new_id
     except:
         return "ALD-UNKNOWN-ID"
 
 def check_online_license(user_key):
     dev_id = get_device_id()
     try:
-        # ၄။ Connection Timeout ပြဿနာအတွက် Timeout ကို လုံလောက်အောင် ထားထားသည်
         res = requests.get(RAW_KEY_LINK, timeout=10)
         if res.status_code == 200:
             lines = res.text.splitlines()
@@ -49,15 +64,21 @@ def check_online_license(user_key):
                 if "|" in line:
                     parts = line.split("|")
                     if len(parts) >= 3:
-                        db_id, db_key, db_exp = parts[0].strip(), parts[1].strip(), parts[2].strip()
+                        db_id = parts[0].strip()
+                        db_key = parts[1].strip()
+                        db_exp = parts[2].strip()
+                        
                         if db_id == dev_id and db_key == user_key:
+                            # ရက်/လ/နှစ် နာရီ:မိနစ် ပုံစံဖြင့် စစ်ဆေးခြင်း
                             try:
                                 exp_dt = datetime.strptime(db_exp, "%d/%m/%Y %H:%M")
                                 if datetime.now() < exp_dt:
                                     return True, db_exp
                                 else:
                                     return False, "Expired"
-                            except: continue
+                            except:
+                                # Format မှားနေရင် ကျော်သွားမယ်
+                                continue
     except:
         return None, "Offline"
     return False, "Invalid"
@@ -107,7 +128,6 @@ async def get_session_id(session, session_url):
 
 class AladdinTool:
     def __init__(self):
-        # ၂။ Base64 Padding Error ပြင်ဆင်ပြီး (Multiple of 4 ဖြစ်အောင် Logic ထည့်ထားသည်)
         raw_url = b'aHR0cHM6Ly9wb3J0YWwtYXMucnVpamllbmV0d29ya3MuY29tL2FwaS9hdXRoL3dpZmlkb2c/c3RhZ2U9cG9ydGFsJmd3X2lkPTU4YjRiYmNiZmQwZCZnd19zbj1IMVU0MFNYMDExNTA3Jmd3X2FkZHJlc3M9MTkyLjE2OC45OS4xJmd3X3BvcnQ9MjA2MCZpcD0xOTIuMTY4Ljk5LjU0Jm1hYz0zYTpkZDo3ZTo2NDo4NzozNiZzbG90X251bT0xMyZuYXNpcD0xOTIuMTY4LjEuMTczJnNzaWQ9VkxBTjk5JnVzdGF0ZT0wJm1hY19yZXE9MSZ1cmw9aHR0cCUzQSUyRiUyRjE5Mi4xNjguMC4xJTJGJmNoYXBfaWQ9JTVDMzEwJmNoYXBfY2hhbGxlbmdlPSU1QzIxNiU1QzE2MCU1QzEyMiU1QzE3NyU1QzIxNyU1QzM2MCU1QzM2MyU1QzMyMSU1QzA1NiU1QzExMyU1QzIzMiU1QzIyMSU1QzMzMiU1QzI2MCU1QzI1MCU1QzAwMQ=='
         missing_padding = len(raw_url) % 4
         if missing_padding: raw_url += b'=' * (4 - missing_padding)
