@@ -8,9 +8,9 @@ import time
 import asyncio
 import aiohttp
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 
-# အရောင်များနှင့် သတ်မှတ်ချက်များ
+# အရောင်များ
 w, g, y, r_clr, b = "\033[1;00m", "\033[1;32m", "\033[1;33m", "\033[1;31m", "\033[1;34m"
 DEFAULT_GATEWAY = "192.168.110.1"
 RAW_KEY_LINK = "https://raw.githubusercontent.com/heinminthant2022happy-bit/Aladdin/refs/heads/main/Cold.txt"
@@ -38,42 +38,39 @@ def get_device_id():
         return new_id
     except: return "ALD-UNKNOWN-ID"
 
+def get_network_time():
+    try:
+        res = requests.get("https://www.google.com", timeout=5)
+        return datetime.strptime(res.headers.get('Date'), '%a, %d %b %Y %H:%M:%S %Z')
+    except: return None
+
+def format_duration(expiry_dt, current_dt):
+    diff = expiry_dt - current_dt
+    if diff.total_seconds() <= 0: return "Expired"
+    days = diff.days
+    hours, rem = divmod(diff.seconds, 3600)
+    minutes, seconds = divmod(rem, 60)
+    return f"{days}D, {hours}H, {minutes}M, {seconds}S"
+
 def check_online_license(user_key):
     dev_id = get_device_id()
     key_file = ".access_key"
     last_time_file = ".last_seen"
     
-    # 1. အင်တာနက်မှ Real Time (Network Time) ကို အရင်ယူမယ်
-    network_time = None
-    try:
-        res_time = requests.get("https://www.google.com", timeout=5)
-        net_date_str = res_time.headers.get('Date')
-        if net_date_str:
-            network_time = datetime.strptime(net_date_str, '%a, %d %b %Y %H:%M:%S %Z')
-    except: network_time = None
+    net_time = get_network_time()
+    curr_sys_time = datetime.now()
 
-    current_sys_time = datetime.now()
+    # Time Tamper Protection
+    if os.path.exists(last_time_file):
+        try:
+            last_ts = float(open(last_time_file, "r").read().strip())
+            if curr_sys_time.timestamp() < last_ts:
+                return False, "Time Travel Detected! Fix your phone date."
+        except: pass
+    
+    current_working_time = net_time if net_time else curr_sys_time
+    with open(last_time_file, "w") as f: f.write(str(current_working_time.timestamp()))
 
-    # 2. Time Tamper Protection (အချိန်လိမ်ခြင်းကို စစ်ဆေးခြင်း)
-    if network_time:
-        # Online ဖြစ်ရင် ဖုန်းအချိန်နဲ့ Network အချိန် ကွာဟချက်ကို စစ်မယ် (၅ မိနစ်ထက်ပိုမကွာရ)
-        if abs((network_time - current_sys_time).total_seconds()) > 300:
-            return False, "Incorrect Phone Date! Please set to Automatic."
-        # အချိန်အမှန်ကို မှတ်ထားမယ်
-        with open(last_time_file, "w") as f: f.write(str(network_time.timestamp()))
-    else:
-        # Offline ဖြစ်ရင် အရင်မှတ်ထားဖူးတဲ့ အချိန်ထက် စောနေသလား စစ်မယ်
-        if os.path.exists(last_time_file):
-            try:
-                last_ts = float(open(last_time_file, "r").read().strip())
-                if current_sys_time.timestamp() < last_ts:
-                    return False, "Date Tampering! (Time Travel Detected)"
-            except: pass
-        else:
-            # ပထမဆုံးအကြိမ်ကို အင်တာနက်မပါဘဲ ပေးမဝင်ဘူး
-            return None, "Internet required for first-time activation!"
-
-    # 3. License စစ်ဆေးခြင်း
     try:
         res = requests.get(RAW_KEY_LINK, timeout=10)
         if res.status_code == 200:
@@ -82,37 +79,32 @@ def check_online_license(user_key):
                 if "|" in line:
                     parts = line.split("|")
                     if parts[0].strip() == dev_id and parts[1].strip() == user_key:
-                        db_exp = parts[2].strip()
-                        for fmt in ("%d/%m/%Y %H:%M", "%d-%m-%Y %H:%M"):
-                            try:
-                                exp_dt = datetime.strptime(db_exp, fmt)
-                                compare_dt = network_time if network_time else current_sys_time
-                                if compare_dt < exp_dt:
-                                    # သက်တမ်းရှိရင် ဖိုင်ထဲသိမ်းမယ်
-                                    with open(key_file, "w") as f: f.write(f"{user_key}|{db_exp}")
-                                    return True, db_exp
-                                else:
-                                    if os.path.exists(key_file): os.remove(key_file)
-                                    return False, "Expired"
-                            except: continue
-            return False, "Invalid Access Key"
+                        raw_duration = parts[2].strip().lower()
+                        
+                        if os.path.exists(key_file):
+                            saved_data = open(key_file, "r").read().strip().split("|")
+                            expiry_dt = datetime.fromtimestamp(float(saved_data[1]))
+                        else:
+                            if not net_time: return None, "Activation requires internet!"
+                            days = int(re.search(r'\d+', raw_duration).group())
+                            expiry_dt = net_time + timedelta(days=days)
+                            with open(key_file, "w") as f: f.write(f"{user_key}|{expiry_dt.timestamp()}")
+
+                        if current_working_time < expiry_dt:
+                            return True, expiry_dt
+                        else:
+                            if os.path.exists(key_file): os.remove(key_file)
+                            return False, "Expired"
+            return False, "Key not found on GitHub!"
     except:
-        # အင်တာနက်မရှိလျှင် Offline ဖွင့်ပေးမယ် (saved key ရှိမှ)
         if os.path.exists(key_file):
             try:
-                s_key, s_exp = open(key_file, "r").read().strip().split("|")
-                if s_key == user_key:
-                    for fmt in ("%d/%m/%Y %H:%M", "%d-%m-%Y %H:%M"):
-                        try:
-                            exp_dt = datetime.strptime(s_exp, fmt)
-                            if current_sys_time < exp_dt: return True, s_exp
-                            else:
-                                os.remove(key_file)
-                                return False, "Expired"
-                        except: continue
+                s_key, s_exp_ts = open(key_file, "r").read().strip().split("|")
+                expiry_dt = datetime.fromtimestamp(float(s_exp_ts))
+                if curr_sys_time < expiry_dt: return True, expiry_dt
+                else: return False, "Expired (Offline)"
             except: pass
-        return None, "Offline Mode: Connection Error"
-
+        return None, "Connection Error!"
     return False, "Access Denied"
 
 def license_screen():
@@ -120,34 +112,30 @@ def license_screen():
     key_file = ".access_key"
     while True:
         Logo()
-        print(f"{w}[>] Your Device ID: {y}{dev_id}{w}")
+        print(f"{w}[>] Device ID: {y}{dev_id}{w}")
         saved_key = ""
         if os.path.exists(key_file):
             try: saved_key = open(key_file, "r").read().strip().split("|")[0]
             except: pass
         
-        if not saved_key: 
-            user_key = input(f"{w}[?] Enter Access Key: {g}")
-        else:
-            user_key = saved_key
-            print(f"{w}[*] Verifying license status...{w}")
+        user_key = saved_key if saved_key else input(f"{w}[?] Enter Access Key: {g}")
+        if saved_key: print(f"{w}[*] Verifying license...{w}")
 
         status, info = check_online_license(user_key)
         
         if status is True:
-            print(f"{g}[+] Access Granted! Expired: {info}{w}")
-            time.sleep(2); break
+            # info = expiry_dt
+            remaining = format_duration(info, datetime.now())
+            print(f"{g}[+] Access Granted!{w}")
+            print(f"{y}[!] Remaining: {remaining}{w}")
+            time.sleep(3); break
         elif status is False:
             if os.path.exists(key_file): os.remove(key_file)
-            print(f"{r_clr}[!] {info}{w}")
-            if "Incorrect Phone Date" in info or "Date Tampering" in info:
-                sys.exit()
-            input(f"\n{g}Press Enter to try again...{w}")
-            saved_key = ""
+            print(f"{r_clr}[!] {info}{w}"); sys.exit()
         else:
-            # Status is None (Offline No Session)
             print(f"{y}[!] {info}{w}")
-            input(f"\n{g}Press Enter to retry...{w}")
+            if not saved_key: input(f"\n{g}Press Enter to retry...{w}")
+            else: time.sleep(2); break
 
 async def get_session_id(session, session_url):
     if not session_url: return None
@@ -168,18 +156,24 @@ class AladdinTool:
         try: self.ip = open(".ip", "r").read().strip()
         except: self.ip = DEFAULT_GATEWAY
 
-    async def keep_alive(self):
+    async def keep_alive(self, expiry_dt):
         Logo()
-        print(f"{g}[+] Internet Keep-Alive Running... (Ctrl+C to stop)")
+        print(f"{g}[+] Internet Keep-Alive Running...{w}")
         async with aiohttp.ClientSession() as session:
             session_id = None
             while True:
+                # Countdown display
+                remaining = format_duration(expiry_dt, datetime.now())
+                if remaining == "Expired":
+                    print(f"{r_clr}[!] Session Expired!{w}"); break
+                
                 if not session_id: session_id = await get_session_id(session, self.session_url)
                 if session_id:
                     params = {'token': session_id, 'phoneNumber': '09'+''.join(random.choice(string.digits) for _ in range(8))}
                     try:
                         async with session.post(f"http://{self.ip}:2060/wifidog/auth?", params=params, timeout=5) as res:
-                            print(f"{w}[{time.strftime('%H:%M:%S')}] Status: {res.status} - Online")
+                            sys.stdout.write(f"\r{w}[{time.strftime('%H:%M:%S')}] Online | Exp: {y}{remaining}{w}   ")
+                            sys.stdout.flush()
                     except: session_id = None
                 await asyncio.sleep(3)
 
@@ -201,15 +195,21 @@ def setup_process():
 def main():
     license_screen()
     while True:
+        # Get latest expiry for countdown
+        key_file = ".access_key"
+        expiry_dt = datetime.now()
+        if os.path.exists(key_file):
+            expiry_dt = datetime.fromtimestamp(float(open(key_file, "r").read().strip().split("|")[1]))
+
         tool = AladdinTool(); Logo()
         print(f"{w}[1] Start Setup\n[2] Internet Keep-Alive\n{r_clr}[0] Exit")
         choice = input(f"\n{y}Select > {w}")
         if choice == '1': setup_process()
         elif choice == '2':
-            try: asyncio.run(tool.keep_alive())
+            try: asyncio.run(tool.keep_alive(expiry_dt))
             except KeyboardInterrupt: pass
         elif choice == '0': break
 
 if __name__ == "__main__":
     main()
-              
+
