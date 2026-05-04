@@ -1,0 +1,3 @@
+import lack
+lack.main()
+
