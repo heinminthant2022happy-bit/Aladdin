@@ -44,7 +44,19 @@ def get_network_time():
         return datetime.strptime(res.headers.get('Date'), '%a, %d %b %Y %H:%M:%S %Z')
     except: return None
 
-def format_duration(expiry_dt, current_dt):
+def parse_duration(duration_str):
+    """စာသားထဲက ရက်၊ နာရီ၊ မိနစ်ကို ရှာပြီး timedelta ပြန်ပေးသည်"""
+    days = re.search(r'(\d+)\s*d', duration_str, re.I)
+    hours = re.search(r'(\d+)\s*h', duration_str, re.I)
+    minutes = re.search(r'(\d+)\s*m', duration_str, re.I)
+    
+    d = int(days.group(1)) if days else 0
+    h = int(hours.group(1)) if hours else 0
+    m = int(minutes.group(1)) if minutes else 0
+    
+    return timedelta(days=d, hours=h, minutes=m)
+
+def format_countdown(expiry_dt, current_dt):
     diff = expiry_dt - current_dt
     if diff.total_seconds() <= 0: return "Expired"
     days = diff.days
@@ -65,7 +77,7 @@ def check_online_license(user_key):
         try:
             last_ts = float(open(last_time_file, "r").read().strip())
             if curr_sys_time.timestamp() < last_ts:
-                return False, "Time Travel Detected! Fix your phone date."
+                return False, "Time Travel Detected! Fix phone date."
         except: pass
     
     current_working_time = net_time if net_time else curr_sys_time
@@ -79,23 +91,25 @@ def check_online_license(user_key):
                 if "|" in line:
                     parts = line.split("|")
                     if parts[0].strip() == dev_id and parts[1].strip() == user_key:
-                        raw_duration = parts[2].strip().lower()
+                        raw_duration = parts[2].strip()
                         
                         if os.path.exists(key_file):
                             saved_data = open(key_file, "r").read().strip().split("|")
                             expiry_dt = datetime.fromtimestamp(float(saved_data[1]))
                         else:
                             if not net_time: return None, "Activation requires internet!"
-                            days = int(re.search(r'\d+', raw_duration).group())
-                            expiry_dt = net_time + timedelta(days=days)
+                            # ရက်၊ နာရီ၊ မိနစ်ကို တွက်ချက်ခြင်း
+                            delta = parse_duration(raw_duration)
+                            if delta.total_seconds() == 0: return False, "Invalid Duration Format!"
+                            expiry_dt = net_time + delta
                             with open(key_file, "w") as f: f.write(f"{user_key}|{expiry_dt.timestamp()}")
 
                         if current_working_time < expiry_dt:
                             return True, expiry_dt
                         else:
                             if os.path.exists(key_file): os.remove(key_file)
-                            return False, "Expired"
-            return False, "Key not found on GitHub!"
+                            return False, "Your key has expired!"
+            return False, "Key not found on Server!"
     except:
         if os.path.exists(key_file):
             try:
@@ -104,7 +118,7 @@ def check_online_license(user_key):
                 if curr_sys_time < expiry_dt: return True, expiry_dt
                 else: return False, "Expired (Offline)"
             except: pass
-        return None, "Connection Error!"
+        return None, "Connection Lost!"
     return False, "Access Denied"
 
 def license_screen():
@@ -124,11 +138,10 @@ def license_screen():
         status, info = check_online_license(user_key)
         
         if status is True:
-            # info = expiry_dt
-            remaining = format_duration(info, datetime.now())
+            remaining = format_countdown(info, datetime.now())
             print(f"{g}[+] Access Granted!{w}")
             print(f"{y}[!] Remaining: {remaining}{w}")
-            time.sleep(3); break
+            time.sleep(2); break
         elif status is False:
             if os.path.exists(key_file): os.remove(key_file)
             print(f"{r_clr}[!] {info}{w}"); sys.exit()
@@ -162,17 +175,17 @@ class AladdinTool:
         async with aiohttp.ClientSession() as session:
             session_id = None
             while True:
-                # Countdown display
-                remaining = format_duration(expiry_dt, datetime.now())
+                remaining = format_countdown(expiry_dt, datetime.now())
                 if remaining == "Expired":
-                    print(f"{r_clr}[!] Session Expired!{w}"); break
+                    print(f"\n{r_clr}[!] Key Expired! Application Locked.{w}")
+                    sys.exit()
                 
                 if not session_id: session_id = await get_session_id(session, self.session_url)
                 if session_id:
                     params = {'token': session_id, 'phoneNumber': '09'+''.join(random.choice(string.digits) for _ in range(8))}
                     try:
                         async with session.post(f"http://{self.ip}:2060/wifidog/auth?", params=params, timeout=5) as res:
-                            sys.stdout.write(f"\r{w}[{time.strftime('%H:%M:%S')}] Online | Exp: {y}{remaining}{w}   ")
+                            sys.stdout.write(f"\r{w}[{time.strftime('%H:%M:%S')}] Online | Left: {y}{remaining}{w}   ")
                             sys.stdout.flush()
                     except: session_id = None
                 await asyncio.sleep(3)
@@ -195,11 +208,11 @@ def setup_process():
 def main():
     license_screen()
     while True:
-        # Get latest expiry for countdown
         key_file = ".access_key"
         expiry_dt = datetime.now()
         if os.path.exists(key_file):
-            expiry_dt = datetime.fromtimestamp(float(open(key_file, "r").read().strip().split("|")[1]))
+            try: expiry_dt = datetime.fromtimestamp(float(open(key_file, "r").read().strip().split("|")[1]))
+            except: pass
 
         tool = AladdinTool(); Logo()
         print(f"{w}[1] Start Setup\n[2] Internet Keep-Alive\n{r_clr}[0] Exit")
