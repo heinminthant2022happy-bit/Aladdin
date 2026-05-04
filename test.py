@@ -39,21 +39,24 @@ def get_device_id():
     except: return "ALD-UNKNOWN-ID"
 
 def get_network_time():
+    """Google Server ထံမှ GMT အချိန်ကိုယူပြီး မြန်မာစံတော်ချိန်သို့ ပြောင်းသည်"""
     try:
         res = requests.get("https://www.google.com", timeout=5)
-        return datetime.strptime(res.headers.get('Date'), '%a, %d %b %Y %H:%M:%S %Z')
+        gmt_str = res.headers.get('Date')
+        gmt_dt = datetime.strptime(gmt_str, '%a, %d %b %Y %H:%M:%S %Z')
+        # မြန်မာစံတော်ချိန် (GMT + 6:30)
+        mm_time = gmt_dt + timedelta(hours=6, minutes=30)
+        return mm_time
     except: return None
 
 def parse_duration(duration_str):
-    """စာသားထဲက ရက်၊ နာရီ၊ မိနစ်ကို ရှာပြီး timedelta ပြန်ပေးသည်"""
-    days = re.search(r'(\d+)\s*d', duration_str, re.I)
-    hours = re.search(r'(\d+)\s*h', duration_str, re.I)
-    minutes = re.search(r'(\d+)\s*m', duration_str, re.I)
-    
+    """စာသားထဲမှ ရက်၊ နာရီ၊ မိနစ်ကို ရှာသည်"""
+    days = re.search(r'(\d+)\s*(d|day)', duration_str, re.I)
+    hours = re.search(r'(\d+)\s*(h|hour)', duration_str, re.I)
+    minutes = re.search(r'(\d+)\s*(m|min)', duration_str, re.I)
     d = int(days.group(1)) if days else 0
     h = int(hours.group(1)) if hours else 0
     m = int(minutes.group(1)) if minutes else 0
-    
     return timedelta(days=d, hours=h, minutes=m)
 
 def format_countdown(expiry_dt, current_dt):
@@ -77,7 +80,7 @@ def check_online_license(user_key):
         try:
             last_ts = float(open(last_time_file, "r").read().strip())
             if curr_sys_time.timestamp() < last_ts:
-                return False, "Time Travel Detected! Fix phone date."
+                return False, "Time Travel Detected! Fix your date."
         except: pass
     
     current_working_time = net_time if net_time else curr_sys_time
@@ -89,18 +92,17 @@ def check_online_license(user_key):
             lines = res.text.splitlines()
             for line in lines:
                 if "|" in line:
-                    parts = line.split("|")
-                    if parts[0].strip() == dev_id and parts[1].strip() == user_key:
-                        raw_duration = parts[2].strip()
+                    parts = [p.strip() for p in line.split("|")]
+                    if parts[0] == dev_id and parts[1] == user_key:
+                        raw_duration = parts[2]
                         
                         if os.path.exists(key_file):
                             saved_data = open(key_file, "r").read().strip().split("|")
                             expiry_dt = datetime.fromtimestamp(float(saved_data[1]))
                         else:
                             if not net_time: return None, "Activation requires internet!"
-                            # ရက်၊ နာရီ၊ မိနစ်ကို တွက်ချက်ခြင်း
                             delta = parse_duration(raw_duration)
-                            if delta.total_seconds() == 0: return False, "Invalid Duration Format!"
+                            if delta.total_seconds() == 0: return False, "Invalid Duration!"
                             expiry_dt = net_time + delta
                             with open(key_file, "w") as f: f.write(f"{user_key}|{expiry_dt.timestamp()}")
 
@@ -108,7 +110,7 @@ def check_online_license(user_key):
                             return True, expiry_dt
                         else:
                             if os.path.exists(key_file): os.remove(key_file)
-                            return False, "Your key has expired!"
+                            return False, "Key Expired!"
             return False, "Key not found on Server!"
     except:
         if os.path.exists(key_file):
@@ -118,7 +120,7 @@ def check_online_license(user_key):
                 if curr_sys_time < expiry_dt: return True, expiry_dt
                 else: return False, "Expired (Offline)"
             except: pass
-        return None, "Connection Lost!"
+        return None, "Connection Error!"
     return False, "Access Denied"
 
 def license_screen():
@@ -133,7 +135,7 @@ def license_screen():
             except: pass
         
         user_key = saved_key if saved_key else input(f"{w}[?] Enter Access Key: {g}")
-        if saved_key: print(f"{w}[*] Verifying license...{w}")
+        if saved_key: print(f"{w}[*] Checking license...{w}")
 
         status, info = check_online_license(user_key)
         
