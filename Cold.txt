@@ -23,7 +23,6 @@ ALD-1NS8N585428F | zomixk | 22 Days
 ALD-4C1I36ZR5OB8 | hlaine | 23 Days
 ALD-LJQVY765IEVV | s1111 | 12 Days 
 ALD-DRECQLZQMU1R | kopxone | 4 Days
-ALD-1X38EYEIRJ7M | boooo | 7 Days
 ALD-21HRTFQ9H9LH | zin | 9 Days
 ALD-5V7H3C3D5CF1 | shine | 7 Days
 ALD-JOQAVKFTMP3B | zest | 5 Days
@@ -60,3 +59,5 @@ ALD-QVR1W6RSREC8 | zawnaing1| 30 Days
 ALD-25WI8W7OJFSS | pro | 15 Days
 ALD-DH1DFR0YTNVR | chanchan | 1 Hour
 ALD-8O3P5CZVB8HV | kyikhant3 | 3 Hours
+ALD-NGLA8FFK30H3 | add | 33 Days
+ALD-EK0TXZCUMAQ9 | kyikhant4 | 2 Hours 
