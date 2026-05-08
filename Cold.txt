@@ -70,3 +70,4 @@ ALD-MB2576XFJ29E | cow | 30 Minutes
 ALD-P37TILQK60RX | chan2 | 30 Days
 ALD-JEBFEILLXC0S | kyikhant8 | 30 Days
 ALD-Q9B051FLB3DH | syar | 34 Minutes 
+ALD-MIBD36QBQS8F | chan3 | 30 Minutes
