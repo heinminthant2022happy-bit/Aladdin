@@ -1,12 +1,13 @@
+
 import Vouchercodes
 
-# Vouchercodes.so ဖိုင်ထဲက ကုဒ်တွေကို စတင် run ပါမယ်
-if __name__ == "__main__":
-    try:
-        # တကယ်လို့ မူရင်း .py ထဲမှာ function တွေ ခွဲမထားရင် 
-        # import လုပ်လိုက်တာနဲ့တင် အလုပ်လုပ်မှာဖြစ်ပါတယ်
-        print("Vouchercodes.so ကို စတင်ပတ်နေပါပြီ...")
-        
-    except Exception as e:
-        print(f"Error တက်သွားပါသည်: {e}")
-      
+# Vouchercode.so ထဲမှာပါတဲ့ function တွေကို စတင်အသုံးပြုခြင်း
+try:
+    # ဥပမာ - Vouchercode ထဲမှာ main() ဆိုတဲ့ function ပါရင် အောက်ပါအတိုင်း ခေါ်သုံးပါ
+    Vouchercodes.main() 
+    
+except AttributeError:
+    print("Function အမည် မှားယွင်းနေပါသည်။ .so ဖိုင်ထဲက function အမည်ကို စစ်ဆေးပါ။")
+except Exception as e:
+    print(f"Error ဖြစ်ပွားမှု: {e}")
+    
