@@ -1,4 +1,4 @@
-import Vouchercode
+import Vouchercodes
 import asyncio
 
 if __name__ == "__main__":
