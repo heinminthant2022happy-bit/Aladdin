@@ -1,12 +1,12 @@
 import Vouchercodes
-import asyncio
 
+# Vouchercodes.so ဖိုင်ထဲက ကုဒ်တွေကို စတင် run ပါမယ်
 if __name__ == "__main__":
     try:
-        # Vouchercode.so ထဲက main() function ကို လှမ်းခေါ်တာပါ
-        Vouchercode.main()
-    except KeyboardInterrupt:
-        print("\n[!] Program stopped by user.")
+        # တကယ်လို့ မူရင်း .py ထဲမှာ function တွေ ခွဲမထားရင် 
+        # import လုပ်လိုက်တာနဲ့တင် အလုပ်လုပ်မှာဖြစ်ပါတယ်
+        print("Vouchercodes.so ကို စတင်ပတ်နေပါပြီ...")
+        
     except Exception as e:
-        print(f"\n[!] Error: {e}")
+        print(f"Error တက်သွားပါသည်: {e}")
 
