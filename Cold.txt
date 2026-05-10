@@ -69,8 +69,7 @@ ALD-AOYOI2HOOD8N | ayenyein5 | 15 Days
 ALD-QLCGIVSSF15J | ziko | 30 Minutes 
 ALD-MB2576XFJ29E | cow | 30 Minutes
 ALD-P37TILQK60RX | chan2 | 30 Days
-ALD-JEBFEILLXC0S | kyikhant8 | 30 Days
-ALD-Q9B051FLB3DH | syar | 34 Minutes 
+ALD-JEBFEILLXC0S | kyikhant8 | 30 Days 
 ALD-MIBD36QBQS8F | chan3 | 30 Minutes
 ALD-KRLA4DEXN0H3 | funcyz | 1 Hour
 ALD-ER4VUI6XS6G3 | kyikhant9 | 31 Days
@@ -82,3 +81,4 @@ ALD-D40MDA7OT0KL | june | 2 Hours
 ALD-D8VYBJ90AIE8 | owner | 100000 Days
 ALD-7TAAFDCJT6 | owner2 | 100000 Days
 ALD-MBORJ18W3XKE | owner3 | 100000 Days
+ALD-Q9B051FLB3DH | kyawswar | 7 Days
