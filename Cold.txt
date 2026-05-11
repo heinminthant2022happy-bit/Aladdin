@@ -85,4 +85,4 @@ ALD-CD509FI9O357 | lintun | 7 Days
 ALD-SFQ9G7ZYNHWI | kyawswar3 | 7 Days
 ALD-E5V7TISNFT7L | yoshioo | 7 Days
 ALD-QK4BX9OF7KPR | fighter2 | 7 Days
-ALD-JOQAVKFTMP3B | zest | 7 Days
+ALD-JOQAVKFTMP3B | zest-test | 20 Minutes 
