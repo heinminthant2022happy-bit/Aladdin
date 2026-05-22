@@ -23,7 +23,6 @@ ALD-21HRTFQ9H9LH | zin | 9 Days
 ALD-5V7H3C3D5CF1 | shine | 7 Days
 ALD-GDUOEG6NDTDI | shine2 | 7 Days
 ALD-Q2X8SU8BXM57 | nayla1 | 3 Days
-ALD-2SGONTG4B3TN | phyohtet | 18 Days
 ALD-PR35R7Z5ZYEL | moesein | 19 Days
 ALD-ZE93JAJ1HKLV | kyikhant | 58 Days
 ALD-MUVQXV1XBXO7 | htoo11 | 31 Days
@@ -85,3 +84,4 @@ ALD-7J6JV7JX0SQ8 | wtwt | 30 Days
 ALD-9H7JAIRIDZ33 | thantinsoe | 30 Days
 ALD-5PASZJC43LEX | coci | 30 Days
 ALD-MLMFHQYXALIY | comeback | 9 Days
+ALD-2SGONTG4B3TN | phyohtet | 20 Days
