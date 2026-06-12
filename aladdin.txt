@@ -1,4 +1,4 @@
-ALD-7WVOKVN1DYNM | success | 1100 Days
+၎င်းALD-7WVOKVN1DYNM | success | 1100 Days
 ALD-ZQZSHYC837LB | good | 1000 Days
 ALD-9L4BPM46ZXY9 | thantsinsoe | 30 Days
 ALD-4Y79XCTEW5KZ | coci | 30 Days
@@ -47,5 +47,4 @@ ALD-X9ZPFO4UQ7H3 | nyein2 | 30 Days
 ALD-U0KDVT7KQE8H | nyein3 | 30 Days
 ALD-WYZWF98BO84E | myominko | 15 Days
 ALD-Z3ZSZYLX9M0F | nyein4 | 30 Days
-ALD-E9X550OCITOG | phyo | 14 Days
 ALD-4H1B9LVIEA8R | nyein5 | 30 Days
